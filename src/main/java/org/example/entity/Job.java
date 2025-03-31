@@ -14,6 +14,7 @@ public class Job {
     private String location;
     private List<String> tags;
     private String description;
+    private String slug;        // ← добавили
     private String url;
 
     public long getId() {
@@ -70,6 +71,14 @@ public class Job {
 
     public void setDescription(String description) {
         this.description = description;
+    }
+
+    public String getSlug() {
+        return slug;
+    }
+
+    public void setSlug(String slug) {
+        this.slug = slug;
     }
 
     public String getUrl() {
