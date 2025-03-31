@@ -25,32 +25,34 @@ public class RemoteOkParser {
     //private static final Set<String> KEYWORDS = Set.of("java", "junior", "remote", "intern");
 
     public static void main(String[] args) {
+        //Создаём HTTP-клиент в try-with-resources, чтобы автоматически закрыть соединение после выполнения
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(API_URL);
+            HttpGet request = new HttpGet(API_URL); //Создаём GET-запрос на указанный API-адрес.
             request.setHeader("User-Agent", "Mozilla/5.0"); // иначе может быть 403
 
+            //Отправляем запрос и получаем тело ответа (JSON) как строку. Используем современную лямбда-версию метода execute
             String responseBody = client.execute(request, response ->
                     EntityUtils.toString(response.getEntity())
             );
 
             //JSON -> List<Job>
-            ObjectMapper mapper = new ObjectMapper();
-            List<Job> allJobs = mapper.readValue(responseBody, new TypeReference<>() {});
+            ObjectMapper mapper = new ObjectMapper(); //Создаём объект Jackson для парсинга JSON.
+            List<Job> allJobs = mapper.readValue(responseBody, new TypeReference<>() {}); //Преобразуем JSON в список объектов Job
 
-            //пропускаем первую запись (мета-информация)
-            List<Job> jobs = allJobs.subList(1, allJobs.size());
+            List<Job> jobs = allJobs.subList(1, allJobs.size()); //пропускаем первую запись (мета-информация)
 
-            //список для записи в CSV
-            List<Job> matchedJobs = new ArrayList<>();
+            List<Job> matchedJobs = new ArrayList<>(); //список для записи в CSV
 
             Scanner scanner = new Scanner(System.in);
             System.out.print("Введите ключевые слова через пробел: ");
+            //Разбиваем строку на массив слов, приводим к нижнему регистру и сохраняем в Set для фильтрации
             String[] keywordInput = scanner.nextLine().toLowerCase().split("\\s+");
             Set<String> keywords = new HashSet<>(Arrays.asList(keywordInput));
 
             System.out.print("За сколько последних дней показывать вакансии? ");
             int days = Integer.parseInt(scanner.nextLine());
 
+            //Вычисляем "крайнее допустимое время" публикации вакансии. Всё, что раньше — пропускаем
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
             DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
@@ -59,9 +61,11 @@ public class RemoteOkParser {
                 // Преобразуем дату из строки
                 LocalDateTime jobDate = null;
                 try {
+                    //Преобразуем дату из строки в объект времени. Если ошибка — пропускаем
                     jobDate = OffsetDateTime.parse(job.getDate(), formatter).toLocalDateTime();
                 } catch (Exception ignored) {}
 
+                //Если дата публикации старая — пропускаем вакансию
                 if (jobDate == null || jobDate.isBefore(cutoffDate)) {
                     continue; // пропускаем старые вакансии
                 }
@@ -87,11 +91,12 @@ public class RemoteOkParser {
             }
 
             //сохранение в CSV
+            //Открываем CSV-файл на запись. В первую строку пишем заголовки колонок.
             try (PrintWriter writer = new PrintWriter(new FileWriter("vacancies.csv"))) {
                 writer.println("Company,Position,Location,URL");
 
                 for (Job job : matchedJobs) {
-                    //экранируем запятые и кавычки
+                    //Пишем все вакансии построчно, экранируя кавычки/запятые, чтобы CSV был корректным
                     String company = escapeCsv(job.getCompany());
                     String position = escapeCsv(job.getPosition());
                     String location = escapeCsv(job.getLocation());
@@ -103,6 +108,7 @@ public class RemoteOkParser {
             System.out.println("\nJobs successfully saved to file vacancies.csv");
 
         } catch (Exception e) {
+            //Ловим любые исключения, выводим в лог с помощью SLF4J.
             logger.error("Ошибка при выполнении запроса или обработке данных", e);
         }
     }
