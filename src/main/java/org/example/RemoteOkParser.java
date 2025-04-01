@@ -44,12 +44,12 @@ public class RemoteOkParser {
             List<Job> matchedJobs = new ArrayList<>(); //список для записи в CSV
 
             Scanner scanner = new Scanner(System.in);
-            System.out.print("Введите ключевые слова через пробел: ");
+            System.out.print("Enter keywords separated by spaces: ");
             //Разбиваем строку на массив слов, приводим к нижнему регистру и сохраняем в Set для фильтрации
             String[] keywordInput = scanner.nextLine().toLowerCase().split("\\s+");
             Set<String> keywords = new HashSet<>(Arrays.asList(keywordInput));
 
-            System.out.print("За сколько последних дней показывать вакансии? ");
+            System.out.print("How many recent days should vacancies be shown? ");
             int days = Integer.parseInt(scanner.nextLine());
 
             //Вычисляем "крайнее допустимое время" публикации вакансии. Всё, что раньше — пропускаем
@@ -109,7 +109,7 @@ public class RemoteOkParser {
 
         } catch (Exception e) {
             //Ловим любые исключения, выводим в лог с помощью SLF4J.
-            logger.error("Ошибка при выполнении запроса или обработке данных", e);
+            logger.error("An error occurred while executing the request or processing the data", e);
         }
     }
 
