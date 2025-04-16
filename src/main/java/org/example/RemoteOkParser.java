@@ -19,55 +19,55 @@ import java.util.*;
 
 public class RemoteOkParser {
     private static final String API_URL = "https://remoteok.io/api";
-    //современный logger вместо устаревшего негибкого e.printStackTrace();
+    // modern logger instead of deprecated inflexible e.printStackTrace();
     private static final Logger logger = LoggerFactory.getLogger(RemoteOkParser.class);
 
     //private static final Set<String> KEYWORDS = Set.of("java", "junior", "remote", "intern");
 
     public static void main(String[] args) {
-        //Создаём HTTP-клиент в try-with-resources, чтобы автоматически закрыть соединение после выполнения
+        // Create an HTTP client in try-with-resources to automatically close the connection after execution.
         try (CloseableHttpClient client = HttpClients.createDefault()) {
-            HttpGet request = new HttpGet(API_URL); //Создаём GET-запрос на указанный API-адрес.
-            request.setHeader("User-Agent", "Mozilla/5.0"); // иначе может быть 403
+            HttpGet request = new HttpGet(API_URL); // Create a GET request to the specified API address.
+            request.setHeader("User-Agent", "Mozilla/5.0"); // If you don't add it, you may get a response with code 403
 
-            //Отправляем запрос и получаем тело ответа (JSON) как строку. Используем современную лямбда-версию метода execute
+            // Send the request and receive the response body (JSON) as a string. Use the modern lambda version of the execute method.
             String responseBody = client.execute(request, response ->
                     EntityUtils.toString(response.getEntity())
             );
 
             //JSON -> List<Job>
-            ObjectMapper mapper = new ObjectMapper(); //Создаём объект Jackson для парсинга JSON.
-            List<Job> allJobs = mapper.readValue(responseBody, new TypeReference<>() {}); //Преобразуем JSON в список объектов Job
+            ObjectMapper mapper = new ObjectMapper(); // Create a Jackson object for parsing JSON.
+            List<Job> allJobs = mapper.readValue(responseBody, new TypeReference<>() {}); // Convert the JSON into a list of Job objects.
 
-            List<Job> jobs = allJobs.subList(1, allJobs.size()); //пропускаем первую запись (мета-информация)
+            List<Job> jobs = allJobs.subList(1, allJobs.size()); // Skip the first entry (meta information)
 
-            List<Job> matchedJobs = new ArrayList<>(); //список для записи в CSV
+            List<Job> matchedJobs = new ArrayList<>(); // List to write to CSV
 
             Scanner scanner = new Scanner(System.in);
             System.out.print("Enter keywords separated by spaces: ");
-            //Разбиваем строку на массив слов, приводим к нижнему регистру и сохраняем в Set для фильтрации
+            // Split the string into an array of words, convert to lowercase, and save in a Set for filtering.
             String[] keywordInput = scanner.nextLine().toLowerCase().split("\\s+");
             Set<String> keywords = new HashSet<>(Arrays.asList(keywordInput));
 
             System.out.print("How many recent days should vacancies be shown? ");
             int days = Integer.parseInt(scanner.nextLine());
 
-            //Вычисляем "крайнее допустимое время" публикации вакансии. Всё, что раньше — пропускаем
+            // Calculate the "last permissible time" for posting a vacancy. Anything earlier is skipped.
             LocalDateTime cutoffDate = LocalDateTime.now().minusDays(days);
             DateTimeFormatter formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME;
 
-            //выводим вакансии, содержащие "java" (регистр не важен)
+            // Display vacancies containing "java" (case does not matter).
             for (Job job : jobs) {
-                // Преобразуем дату из строки
+                // Convert date from string
                 LocalDateTime jobDate = null;
                 try {
-                    //Преобразуем дату из строки в объект времени. Если ошибка — пропускаем
+                    // Convert date from string to time object. If there is an error, skip it.
                     jobDate = OffsetDateTime.parse(job.getDate(), formatter).toLocalDateTime();
                 } catch (Exception ignored) {}
 
-                //Если дата публикации старая — пропускаем вакансию
+                // If the publication date is before "last permissible time", skip the vacancy.
                 if (jobDate == null || jobDate.isBefore(cutoffDate)) {
-                    continue; // пропускаем старые вакансии
+                    continue;
                 }
 
                 String title = Optional.ofNullable(job.getPosition()).orElse("").toLowerCase();
@@ -90,13 +90,13 @@ public class RemoteOkParser {
                 }
             }
 
-            //сохранение в CSV
-            //Открываем CSV-файл на запись. В первую строку пишем заголовки колонок.
+            // Saving to CSV.
+            // Open the CSV file for writing. Write the column headers in the first line.
             try (PrintWriter writer = new PrintWriter(new FileWriter("vacancies.csv"))) {
                 writer.println("Company,Position,Location,URL");
 
                 for (Job job : matchedJobs) {
-                    //Пишем все вакансии построчно, экранируя кавычки/запятые, чтобы CSV был корректным
+                    // We write all vacancies line by line, escaping quotes/commas so that the CSV is correct.
                     String company = escapeCsv(job.getCompany());
                     String position = escapeCsv(job.getPosition());
                     String location = escapeCsv(job.getLocation());
@@ -108,12 +108,12 @@ public class RemoteOkParser {
             System.out.println("\nJobs successfully saved to file vacancies.csv");
 
         } catch (Exception e) {
-            //Ловим любые исключения, выводим в лог с помощью SLF4J.
+            // Catch any exceptions and output them to the log using SLF4J.
             logger.error("An error occurred while executing the request or processing the data", e);
         }
     }
 
-    // Экранирование значений для CSV (кавычки и запятые)
+    // Escaping values for CSV (quotes and commas)
     public static String escapeCsv(String value) {
         if (value == null) return "";
         if (value.contains(",") || value.contains("\"")) {

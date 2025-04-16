@@ -5,7 +5,7 @@ import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 import java.util.List;
 
 @JsonIgnoreProperties(ignoreUnknown = true)
-//если в JSON есть лишние поля, Jackson их проигнорирует
+//If there are extra fields in the JSON, Jackson will ignore them
 public class Job {
     private long id;
     private String date;
@@ -14,7 +14,7 @@ public class Job {
     private String location;
     private List<String> tags;
     private String description;
-    private String slug;        // ← добавили
+    private String slug;
     private String url;
 
     public long getId() {
@@ -93,10 +93,6 @@ public class Job {
     public String toString() {
         return String.format("[%s] %s (%s)\n%s\n", company, position, location, url);
     }
-    //[%s]     → подставляется company (в квадратных скобках)
-    //%s       → подставляется position (название вакансии)
-    //(%s)     → подставляется location (в скобках)
-    //\n       → перевод строки (новая строка)
-    //%s       → подставляется url
-    //\n       → ещё одна новая строка
+    //[%s] - company is substituted (in square brackets)
+    //(%s) - location is substituted (in brackets)
 }
